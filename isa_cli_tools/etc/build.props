@@ -1,0 +1,10 @@
+title = isa_cli_tools
+module = $ISA_CLI_TOOLS_JAR
+requirements = env:ISABELLE_SCALA_JAR
+sources = \
+  src/cli_tool_common.scala \
+  src/desorry.scala \
+  src/eval_at.scala \
+  src/tools.scala
+services = \
+  isabelle.Isa_CLI_Tools

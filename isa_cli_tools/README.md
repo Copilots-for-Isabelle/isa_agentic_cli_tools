@@ -131,15 +131,15 @@ For example:
 
 ```bash
 git switch 2025-2
-cd isa_cli_tools
-bash install.sh /Applications/Isabelle2025-2.app
+/Applications/Isabelle2025-2.app/bin/isabelle components -u "$PWD/isa_cli_tools"
+/Applications/Isabelle2025-2.app/bin/isabelle scala_build
 ```
 
 The branches contain release-specific source adaptations. Select the branch
 before installing, and do not install sources from one branch into a different
 Isabelle release.
 
-Check the Isabelle installation you intend to modify explicitly:
+Check the Isabelle installation you intend to use explicitly:
 
 ```bash
 /path/to/isabelle/bin/isabelle version
@@ -148,93 +148,47 @@ Check the Isabelle installation you intend to modify explicitly:
 hg -R /path/to/isabelle id -i
 ```
 
-### Automated install
+### Install as an Isabelle component
+
+The `isa_cli_tools` directory is an Isabelle system component: `etc/settings`
+defines `ISA_CLI_TOOLS_HOME` and `ISA_CLI_TOOLS_JAR`, and `etc/build.props`
+declares the Scala sources and the `isabelle.Isa_CLI_Tools` service that
+registers both tools. The Isabelle installation itself is not modified.
+
+Register the component in user space and build its jar:
 
 ```bash
-bash install.sh /path/to/isabelle
+isabelle components -u /path/to/isa_agentic_cli_tools/isa_cli_tools
+isabelle scala_build
 ```
 
-The installer copies the Scala sources into the Isabelle source tree,
-registers them in `etc/build.props` and `isabelle_tool.scala`, then
-rebuilds (`isabelle scala_build`). It is idempotent — safe to re-run.
+`components -u` appends the path to `$ISABELLE_HOME_USER/etc/components`, so
+the component is registered by path; if you move this directory, amend the
+registration. `scala_build` writes `isa_cli_tools/lib/isa_cli_tools.jar`.
 
-To update to newer sources, re-run the same command. The Scala files are
-always overwritten; registration entries are skipped if already present.
-Use `-f` to force re-registration:
+To pick up newer sources, pull and re-run `isabelle scala_build`.
+
+To uninstall, remove the path again:
 
 ```bash
-bash install.sh -f /path/to/isabelle
+isabelle components -x /path/to/isa_agentic_cli_tools/isa_cli_tools
 ```
 
-### Manual install
+Note that every Isabelle/Scala tool invocation first builds all registered
+components. A registered component that does not compile against this
+Isabelle version (e.g. one checked out for a different release) therefore
+breaks `components`, `scala_build`, `eval_at` and `desorry` alike.
 
-If you prefer to install by hand (or the installer doesn't work for your
-Isabelle version), follow these four steps. `$ISA` refers to your
-Isabelle installation root (the directory containing `bin/isabelle`).
+### Upgrading from the old `install.sh` setup
 
-**Step 1.** Copy the Scala source files:
+Earlier versions patched the sources into the Isabelle tree. Remove those
+first, otherwise `Eval_At` and `Desorry` are defined twice:
 
 ```bash
-cp src/Pure/Tools/cli_tool_common.scala $ISA/src/Pure/Tools/
-cp src/Pure/Tools/eval_at.scala  $ISA/src/Pure/Tools/
-cp src/Pure/Tools/desorry.scala  $ISA/src/Pure/Tools/
-```
-
-**Step 2.** Register the source files in `$ISA/etc/build.props`.
-Find the alphabetically sorted list of `src/Pure/Tools/*.scala` entries
-and add three lines (maintaining alphabetical order):
-
-```
-  src/Pure/Tools/cli_tool_common.scala \
-  src/Pure/Tools/desorry.scala \
-  src/Pure/Tools/eval_at.scala \
-```
-
-For example, they go right before the `flarum.scala` entry:
-
-```
-  ...
-  src/Pure/Tools/cli_tool_common.scala \
-  src/Pure/Tools/desorry.scala \
-  src/Pure/Tools/eval_at.scala \
-  src/Pure/Tools/flarum.scala \
-  ...
-```
-
-**Step 3.** Register the tools in
-`$ISA/src/Pure/System/isabelle_tool.scala`. Find the alphabetically
-sorted list of `*.isabelle_tool` entries and add two lines:
-
-```scala
-  Desorry.isabelle_tool,
-  Eval_At.isabelle_tool,
-```
-
-For example, they go right before the `Export.isabelle_tool` entry:
-
-```scala
-  ...
-  Desorry.isabelle_tool,
-  Eval_At.isabelle_tool,
-  Export.isabelle_tool,
-  ...
-```
-
-**Step 4.** Rebuild the Scala layer:
-
-```bash
-$ISA/bin/isabelle scala_build
-```
-
-### Manual update (sources already registered)
-
-If the tools were previously installed and you only need to pick up
-source changes, you can skip the registration steps:
-
-```bash
-cp src/Pure/Tools/cli_tool_common.scala $ISA/src/Pure/Tools/
-cp src/Pure/Tools/eval_at.scala  $ISA/src/Pure/Tools/
-cp src/Pure/Tools/desorry.scala  $ISA/src/Pure/Tools/
+rm $ISA/src/Pure/Tools/{cli_tool_common,desorry,eval_at}.scala
+# delete the three src/Pure/Tools/{cli_tool_common,desorry,eval_at}.scala
+# lines from $ISA/etc/build.props and the Desorry/Eval_At.isabelle_tool lines
+# from $ISA/src/Pure/System/isabelle_tool.scala, then
 $ISA/bin/isabelle scala_build
 ```
 
@@ -707,7 +661,8 @@ isabelle eval_at -l My_Session -d /project/root My_Theory.thy 15
 ## Troubleshooting
 
 **"Unknown Isabelle tool: eval_at"**
-Run `isabelle scala_build` to rebuild, then retry.
+Check that `isabelle components -l` lists the `isa_cli_tools` directory
+(register it with `isabelle components -u`), run `isabelle scala_build`, then retry.
 
 **"No output at this line."**
 The target line has no Isabelle command and no proof state. Try a different

@@ -1,4 +1,4 @@
-/*  Title:      Pure/Tools/eval_at.scala
+/*  Title:      isa_cli_tools/src/eval_at.scala
     Author:     Isabelle contributors
 
 Evaluate an arbitrary Isabelle command at a given line of a theory file.
