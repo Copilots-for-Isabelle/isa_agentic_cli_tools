@@ -1,4 +1,4 @@
-/*  Title:      Pure/Tools/desorry.scala
+/*  Title:      isa_cli_tools/src/desorry.scala
     Author:     Isabelle contributors
 
 Replace sorry proofs in a theory file with Sledgehammer results.
